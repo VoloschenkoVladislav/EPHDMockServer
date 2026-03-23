@@ -4,6 +4,10 @@ import random
 from datetime import datetime
 
 def set_attachments(data):
+
+    print('\n\nGot request to "set_attachments" with data:\n')
+    print(data)
+
     fields = {}
     files = {}
     

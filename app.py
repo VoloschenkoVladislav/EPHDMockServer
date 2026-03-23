@@ -143,7 +143,7 @@ class MockHandler(BaseHTTPRequestHandler):
             r'^/psbfs/api/v1\.1/files/(\d+)/binaries$': lambda self, match, _: get_attachments(match.group(1)),
             r'^/api/integration/products/([^/]+)$': lambda self, match, _: get_products(match.group(1)),
             r'^/api/v1/ul/clients$': lambda self, match, params: get_clients(params),
-            r'^/psbfs/api/v1.1/jobs/package/([^/]+)/binaries$': lambda self, match, params: get_archive(params)
+            r'^/psbfs/api/v1.1/jobs/package/([^/]+)/binaries$': lambda self, match, params: get_archive(match.group(1))
         },
         'POST': {
             '/psbfs/api/v1.1/files/attachments': lambda data: set_attachments(data),

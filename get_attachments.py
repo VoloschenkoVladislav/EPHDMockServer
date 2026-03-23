@@ -1,4 +1,8 @@
 def get_attachments(id):
+
+    print('\n\nGot request to "get_attachments" with id:\n')
+    print(id)
+
     try:
         with open('./test_file.pdf', 'rb') as f:
             content = f.read()

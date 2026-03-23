@@ -3,6 +3,10 @@ import random
 from datetime import datetime, timedelta
 
 def get_documents(data):
+
+    print('\n\nGot request to "get_documents" with data:\n')
+    print(data)
+
     if 'clientId' not in data:
         return {
             "status": "ERROR",
