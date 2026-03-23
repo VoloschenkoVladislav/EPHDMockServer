@@ -3,10 +3,6 @@ import random
 from datetime import datetime, timedelta
 
 def get_products(clientId):
-
-    print('\n\nGot request to "get_products" with clientId:\n')
-    print(clientId)
-
     numberOfProducts = random.randint(0, 10)
 
     types = [

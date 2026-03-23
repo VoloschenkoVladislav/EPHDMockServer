@@ -1,10 +1,6 @@
 import uuid
 
 def set_credit_info(data):
-
-    print('\n\nGot request to "set_credit_info" with data:\n')
-    print(data)
-
     response = {
         "success": True,
         "payLoad": {

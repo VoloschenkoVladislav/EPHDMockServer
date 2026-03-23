@@ -3,10 +3,6 @@ import random
 from datetime import datetime, timedelta
 
 def get_clients(params):
-
-    print('\n\nGot request to "get_clients" with params:\n')
-    print(params)
-
     full_name = params.get('fullName', [None])[0]
     passport_series = params.get('passportSeries', [None])[0]
     passport_number = params.get('passportNumber', [None])[0]

@@ -1,8 +1,4 @@
 def get_archive(id):
-
-    print('\n\nGot request to "get_archive" with id:\n')
-    print(id)
-
     try:
         with open('./test_archive.zip', 'rb') as f:
             content = f.read()
