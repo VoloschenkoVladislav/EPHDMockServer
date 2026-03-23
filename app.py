@@ -1,8 +1,16 @@
+#!/usr/bin/env python3
 import json
 import re
+import socket
+import uuid
+import os
+import tempfile
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
+from io import BytesIO
+from datetime import datetime
 
+# Импорт ваших обработчиков
 from set_attachments import set_attachments
 from set_credit_info import set_credit_info
 from get_attachments import get_attachments
@@ -12,9 +20,22 @@ from get_documents import get_documents
 from create_archive import create_archive
 from get_archive import get_archive
 
+
 class MultipartParser:
+    """Класс для парсинга multipart/form-data без использования cgi"""
+    
     @staticmethod
     def parse(headers, body):
+        """
+        Парсит multipart/form-data данные
+        
+        Args:
+            headers: HTTP headers (dict-like)
+            body: тело запроса (bytes)
+        
+        Returns:
+            dict: {'fields': {...}, 'files': {...}}
+        """
         content_type = headers.get('Content-Type', '')
         
         # Извлекаем boundary
@@ -91,8 +112,19 @@ class MultipartParser:
 
 
 class ChunkedReader:
+    """Класс для чтения chunked encoded данных"""
+    
     @staticmethod
     def read_chunked(rfile):
+        """
+        Читает данные в формате chunked transfer encoding
+        
+        Args:
+            rfile: файловый объект для чтения
+        
+        Returns:
+            bytes: собранные данные
+        """
         data = bytearray()
         
         while True:
@@ -127,6 +159,7 @@ class ChunkedReader:
     
     @staticmethod
     def _read_line(rfile):
+        """Читает строку из rfile до \r\n"""
         line = bytearray()
         while True:
             b = rfile.read(1)
@@ -137,25 +170,43 @@ class ChunkedReader:
                 return bytes(line[:-2])
         return bytes(line)
 
+
 class MockHandler(BaseHTTPRequestHandler):
+    # Разрешаем все хосты для production (None) или указываем конкретные
+    ALLOWED_HOSTS = None  # None = разрешить все хосты
+    
     endpoints = {
         'GET': {
             r'^/psbfs/api/v1\.1/files/(\d+)/binaries$': lambda self, match, _: get_attachments(match.group(1)),
             r'^/api/integration/products/([^/]+)$': lambda self, match, _: get_products(match.group(1)),
             r'^/api/v1/ul/clients$': lambda self, match, params: get_clients(params),
-            r'^/psbfs/api/v1.1/jobs/package/([^/]+)/binaries$': lambda self, match, params: get_archive(match.group(1))
+            r'^/psbfs/api/v1.1/jobs/package/([^/]+)/binaries$': lambda self, match, params: get_archive(params)
         },
         'POST': {
-            '/psbfs/api/v1.1/files/attachments': lambda data: set_attachments(data),
-            '/psbfs/api/v2/dossier': lambda data: set_credit_info(data),
-            '/api/integration/documents/search': lambda data: get_documents(data),
-            '/psbfs/api/v1.1/jobs/package': lambda data: create_archive(data)
+            '/psbfs/api/v1.1/files/attachments': lambda self, data: set_attachments(data),
+            '/psbfs/api/v2/dossier': lambda self, data: set_credit_info(data),
+            '/api/integration/documents/search': lambda self, data: get_documents(data),
+            '/psbfs/api/v1.1/jobs/package': lambda self, data: create_archive(data)
         },
-        'PUT': {
-        },
-        'DELETE': {
-        }
+        'PUT': {},
+        'DELETE': {}
     }
+    
+    def _check_host(self):
+        """Проверяет, разрешен ли хост"""
+        if self.ALLOWED_HOSTS is None:
+            return True  # Разрешаем все хосты
+        
+        host = self.headers.get('Host', '')
+        host = host.split(':')[0]
+        
+        if host not in self.ALLOWED_HOSTS:
+            self._send_response({
+                'error': 'Forbidden',
+                'message': f'Host {host} is not allowed'
+            }, 403)
+            return False
+        return True
     
     def _set_headers(self, status_code=200, content_type='application/json', extra_headers=None):
         self.send_response(status_code)
@@ -170,6 +221,7 @@ class MockHandler(BaseHTTPRequestHandler):
         self.end_headers()
     
     def _parse_multipart(self):
+        """Парсит multipart/form-data запрос с поддержкой chunked encoding"""
         content_type = self.headers.get('Content-Type', '')
         
         if not content_type.startswith('multipart/form-data'):
@@ -190,6 +242,9 @@ class MockHandler(BaseHTTPRequestHandler):
                 # Читаем все доступные данные
                 body = self.rfile.read()
             
+            if not body:
+                return {'fields': {}, 'files': {}}
+            
             return MultipartParser.parse(self.headers, body)
             
         except Exception as e:
@@ -197,10 +252,14 @@ class MockHandler(BaseHTTPRequestHandler):
             return {'fields': {}, 'files': {}}
     
     def _parse_body(self):
-        # Определяем способ получения данных
-        transfer_encoding = self.headers.get('Transfer-Encoding', '')
-        content_length = self.headers.get('Content-Length')
+        """Парсит тело запроса с поддержкой различных Content-Type и Transfer-Encoding"""
+        
+        content_length = int(self.headers.get('Content-Length', 0))
+        if not content_length:
+            return None
+        
         content_type = self.headers.get('Content-Type', '')
+        transfer_encoding = self.headers.get('Transfer-Encoding', '')
         
         # Получаем тело запроса
         body = None
@@ -210,12 +269,9 @@ class MockHandler(BaseHTTPRequestHandler):
             body = ChunkedReader.read_chunked(self.rfile)
         elif content_length:
             # Читаем с известной длиной
-            content_length_int = int(content_length)
-            if content_length_int > 0:
-                body = self.rfile.read(content_length_int)
+            body = self.rfile.read(content_length)
         else:
             # Нет информации о длине - читаем все доступные данные
-            # (редкий случай, но возможен)
             body = self.rfile.read()
         
         if body is None or len(body) == 0:
@@ -256,6 +312,12 @@ class MockHandler(BaseHTTPRequestHandler):
         self.wfile.write(data)
     
     def _handle_request(self, method, path):
+        """Основной метод обработки запросов"""
+        
+        # Проверяем хост
+        if not self._check_host():
+            return
+        
         parsed = urlparse(path)
         clean_path = parsed.path
         query_params = parse_qs(parsed.query)
@@ -267,24 +329,25 @@ class MockHandler(BaseHTTPRequestHandler):
             try:
                 if method in ['POST', 'PUT']:
                     data = self._parse_body()
-                    result = handler(data)
+                    result = handler(self, data)
                 else:
                     import inspect
                     if inspect.signature(handler).parameters:
-                        result = handler(query_params)
+                        result = handler(self, query_params)
                     else:
-                        result = handler()
+                        result = handler(self)
                 
                 self._send_response(result)
                 return
             except Exception as e:
+                import traceback
+                traceback.print_exc()
                 self._send_response({'error': str(e)}, 500)
                 return
         
         # Если не нашли точное совпадение, ищем по regex паттернам
         for pattern, pattern_handler in self.endpoints.get(method, {}).items():
             if pattern.startswith('^'):  # Это regex паттерн
-                import re
                 match = re.match(pattern, clean_path)
                 if match:
                     try:
@@ -304,6 +367,8 @@ class MockHandler(BaseHTTPRequestHandler):
                         return
                         
                     except Exception as e:
+                        import traceback
+                        traceback.print_exc()
                         self._send_response({'error': str(e)}, 500)
                         return
         
@@ -319,19 +384,15 @@ class MockHandler(BaseHTTPRequestHandler):
     
     # HTTP методы
     def do_GET(self):
-        print(f'\nGot request into {self.path}')
         self._handle_request('GET', self.path)
     
     def do_POST(self):
-        print(f'\nGot request into {self.path}')
         self._handle_request('POST', self.path)
     
     def do_PUT(self):
-        print(f'\nGot request into {self.path}')
         self._handle_request('PUT', self.path)
     
     def do_DELETE(self):
-        print(f'\nGot request into {self.path}')
         self._handle_request('DELETE', self.path)
     
     def do_OPTIONS(self):
@@ -342,34 +403,58 @@ class MockHandler(BaseHTTPRequestHandler):
         self.end_headers()
     
     def log_message(self, format, *args):
-        pass
+        # Включаем логирование для production
+        print(f"[{self.address_string()}] {format % args}")
 
-def run_server(port=8000, host='localhost'):
+
+def get_local_ip():
+    """Получает локальный IP адрес машины"""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('8.8.8.8', 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except:
+        return '127.0.0.1'
+
+
+def run_server(port=8000, host='0.0.0.0'):
     server_address = (host, port)
     httpd = HTTPServer(server_address, MockHandler)
     
-    print(f"🚀 Мок-сервер запущен на http://{host}:{port}")
-    print("\n📡 Доступные эндпоинты:")
-    print("    GET   /psbfs/api/v1.1/files/{id}/binaries")
-    print("    GET   /api/integration/products/{clientId}")
-    print("    GET   /psbfs/api/v1.1/jobs/package/{jobId}/binaries")
-    print("    GET   /api/v1/ul/clients")
-    print("    POST  /psbfs/api/v1.1/files/attachments")
-    print("    POST  /psbfs/api/v2/dossier")
-    print("    POST  /api/integration/documents/search")
-    print("    POST  /psbfs/api/v1.1/jobs/package")
-    
-    print("\n💡 Для остановки сервера нажмите Ctrl+C")
+    print("=" * 70)
+    print("🚀 MOCK SERVER STARTED")
+    print("=" * 70)
+    print(f"📡 Binding: {host}:{port}")
+    print(f"🌐 Server URLs:")
+    print(f"   - http://localhost:{port}")
+    print(f"   - http://{get_local_ip()}:{port}")
+    print()
+    print("📋 Available endpoints:")
+    print("   GET  /psbfs/api/v1.1/files/{id}/binaries")
+    print("   GET  /api/integration/products/{clientId}")
+    print("   GET  /api/v1/ul/clients")
+    print("   GET  /psbfs/api/v1.1/jobs/package/{jobId}/binaries")
+    print("   POST /psbfs/api/v1.1/files/attachments")
+    print("   POST /psbfs/api/v2/dossier")
+    print("   POST /api/integration/documents/search")
+    print("   POST /psbfs/api/v1.1/jobs/package")
+    print()
+    print("💡 Press Ctrl+C to stop the server")
+    print("=" * 70)
     
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
-        print("\n👋 Сервер остановлен")
+        print("\n👋 Server stopped")
         httpd.server_close()
+
 
 if __name__ == '__main__':
     import sys
+    
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8000
-    host = sys.argv[2] if len(sys.argv) > 2 else 'localhost'
+    host = sys.argv[2] if len(sys.argv) > 2 else '0.0.0.0'
     
     run_server(port, host)
