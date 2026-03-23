@@ -319,15 +319,19 @@ class MockHandler(BaseHTTPRequestHandler):
     
     # HTTP методы
     def do_GET(self):
+        print(f'\nGot request into {self.path}')
         self._handle_request('GET', self.path)
     
     def do_POST(self):
+        print(f'\nGot request into {self.path}')
         self._handle_request('POST', self.path)
     
     def do_PUT(self):
+        print(f'\nGot request into {self.path}')
         self._handle_request('PUT', self.path)
     
     def do_DELETE(self):
+        print(f'\nGot request into {self.path}')
         self._handle_request('DELETE', self.path)
     
     def do_OPTIONS(self):
