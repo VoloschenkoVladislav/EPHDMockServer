@@ -1,5 +1,5 @@
 import json
-import cgi
+import re
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 
@@ -11,6 +11,131 @@ from get_clients import get_clients
 from get_documents import get_documents
 from create_archive import create_archive
 from get_archive import get_archive
+
+class MultipartParser:
+    @staticmethod
+    def parse(headers, body):
+        content_type = headers.get('Content-Type', '')
+        
+        # Извлекаем boundary
+        boundary_match = re.search(r'boundary=([^;\s]+)', content_type)
+        if not boundary_match:
+            return {'fields': {}, 'files': {}}
+        
+        boundary = boundary_match.group(1).encode()
+        
+        # Разделяем на части
+        parts = body.split(b'--' + boundary)
+        
+        result = {
+            'fields': {},
+            'files': {}
+        }
+        
+        for part in parts:
+            if not part or part == b'--\r\n' or part == b'--':
+                continue
+            
+            # Убираем \r\n в начале
+            if part.startswith(b'\r\n'):
+                part = part[2:]
+            
+            # Разделяем заголовки и содержимое
+            headers_end = part.find(b'\r\n\r\n')
+            if headers_end == -1:
+                continue
+            
+            headers_section = part[:headers_end].decode('utf-8', errors='replace')
+            content = part[headers_end + 4:]
+            
+            # Убираем завершающий \r\n если есть
+            if content.endswith(b'\r\n'):
+                content = content[:-2]
+            
+            # Парсим заголовки
+            headers_dict = {}
+            for line in headers_section.split('\r\n'):
+                if ':' in line:
+                    key, value = line.split(':', 1)
+                    headers_dict[key.strip()] = value.strip()
+            
+            # Извлекаем имя поля
+            content_disposition = headers_dict.get('Content-Disposition', '')
+            name_match = re.search(r'name="([^"]+)"', content_disposition)
+            if not name_match:
+                continue
+            
+            field_name = name_match.group(1)
+            
+            # Проверяем, является ли это файлом
+            filename_match = re.search(r'filename="([^"]+)"', content_disposition)
+            
+            if filename_match:
+                # Это файл
+                filename = filename_match.group(1)
+                content_type = headers_dict.get('Content-Type', 'application/octet-stream')
+                
+                result['files'][field_name] = {
+                    'filename': filename,
+                    'content': content,
+                    'type': content_type
+                }
+            else:
+                # Это текстовое поле
+                try:
+                    result['fields'][field_name] = content.decode('utf-8')
+                except UnicodeDecodeError:
+                    result['fields'][field_name] = content.decode('latin-1')
+        
+        return result
+
+
+class ChunkedReader:
+    @staticmethod
+    def read_chunked(rfile):
+        data = bytearray()
+        
+        while True:
+            # Читаем размер чанка (в hex)
+            line = ChunkedReader._read_line(rfile)
+            if not line:
+                break
+            
+            # Парсим размер чанка
+            try:
+                chunk_size = int(line.strip().split(b';')[0], 16)
+            except ValueError:
+                break
+            
+            if chunk_size == 0:
+                # Конец данных
+                # Пропускаем завершающие \r\n
+                ChunkedReader._read_line(rfile)
+                break
+            
+            # Читаем чанк
+            chunk = rfile.read(chunk_size)
+            if len(chunk) != chunk_size:
+                break
+            
+            data.extend(chunk)
+            
+            # Пропускаем \r\n после чанка
+            ChunkedReader._read_line(rfile)
+        
+        return bytes(data)
+    
+    @staticmethod
+    def _read_line(rfile):
+        line = bytearray()
+        while True:
+            b = rfile.read(1)
+            if not b:
+                break
+            line.append(b[0])
+            if len(line) >= 2 and line[-2:] == b'\r\n':
+                return bytes(line[:-2])
+        return bytes(line)
 
 class MockHandler(BaseHTTPRequestHandler):
     endpoints = {
@@ -45,65 +170,72 @@ class MockHandler(BaseHTTPRequestHandler):
         self.end_headers()
     
     def _parse_multipart(self):
-        """Парсит multipart/form-data запрос"""
         content_type = self.headers.get('Content-Type', '')
         
         if not content_type.startswith('multipart/form-data'):
             return None
         
         try:
-            # Используем cgi для парсинга multipart данных
-            form = cgi.FieldStorage(
-                fp=self.rfile,
-                headers=self.headers,
-                environ={'REQUEST_METHOD': 'POST',
-                        'CONTENT_TYPE': self.headers['Content-Type']}
-            )
+            # Определяем способ получения данных
+            transfer_encoding = self.headers.get('Transfer-Encoding', '')
+            content_length = self.headers.get('Content-Length')
             
-            result = {
-                'fields': {},  # Текстовые поля
-                'files': {}    # Файлы
-            }
+            if 'chunked' in transfer_encoding.lower():
+                # Читаем chunked данные
+                body = ChunkedReader.read_chunked(self.rfile)
+            elif content_length:
+                # Читаем с известной длиной
+                body = self.rfile.read(int(content_length))
+            else:
+                # Читаем все доступные данные
+                body = self.rfile.read()
             
-            for field in form.keys():
-                field_item = form[field]
-                
-                if field_item.filename:
-                    # Это файл
-                    result['files'][field] = {
-                        'filename': field_item.filename,
-                        'content': field_item.file.read(),
-                        'type': field_item.type
-                    }
-                else:
-                    # Это текстовое поле
-                    result['fields'][field] = field_item.value
-            
-            return result
+            return MultipartParser.parse(self.headers, body)
             
         except Exception as e:
             print(f"Error parsing multipart: {e}")
-            return None
+            return {'fields': {}, 'files': {}}
     
     def _parse_body(self):
-        content_length = int(self.headers.get('Content-Length', 0))
-        if not content_length:
-            return None
-        
+        # Определяем способ получения данных
+        transfer_encoding = self.headers.get('Transfer-Encoding', '')
+        content_length = self.headers.get('Content-Length')
         content_type = self.headers.get('Content-Type', '')
+        
+        # Получаем тело запроса
+        body = None
+        
+        if 'chunked' in transfer_encoding.lower():
+            # Читаем chunked данные
+            body = ChunkedReader.read_chunked(self.rfile)
+        elif content_length:
+            # Читаем с известной длиной
+            content_length_int = int(content_length)
+            if content_length_int > 0:
+                body = self.rfile.read(content_length_int)
+        else:
+            # Нет информации о длине - читаем все доступные данные
+            # (редкий случай, но возможен)
+            body = self.rfile.read()
+        
+        if body is None or len(body) == 0:
+            return None
         
         # Обработка multipart/form-data
         if content_type.startswith('multipart/form-data'):
-            return self._parse_multipart()
+            return MultipartParser.parse(self.headers, body)
         
         # Обработка JSON
         elif content_type.startswith('application/json'):
-            body = self.rfile.read(content_length)
-            return json.loads(body.decode('utf-8'))
+            try:
+                return json.loads(body.decode('utf-8'))
+            except json.JSONDecodeError as e:
+                print(f"Error parsing JSON: {e}")
+                return body.decode('utf-8')
         
         # Обработка обычных бинарных данных
         else:
-            return self.rfile.read(content_length)
+            return body
     
     def _send_response(self, data, status=200):
         self._set_headers(status)
