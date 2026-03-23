@@ -177,7 +177,7 @@ class MockHandler(BaseHTTPRequestHandler):
     
     endpoints = {
         'GET': {
-            r'^/psbfs/api/v1\.1/files/(\d+)/binaries$': lambda self, match, _: get_attachments(match.group(1)),
+            r'^/psbfs/api/v1\.1/files/([^/]+)/binaries$': lambda self, match, _: get_attachments(match.group(1)),
             r'^/api/integration/products/([^/]+)$': lambda self, match, _: get_products(match.group(1)),
             r'^/api/v1/ul/clients$': lambda self, match, params: get_clients(params),
             r'^/psbfs/api/v1.1/jobs/package/([^/]+)/binaries$': lambda self, match, params: get_archive(params)
