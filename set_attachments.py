@@ -2,6 +2,7 @@ import uuid
 import hashlib
 import random
 from datetime import datetime
+import json
 
 def set_attachments(data):
     fields = {}
@@ -33,14 +34,23 @@ def set_attachments(data):
         }, 400
     
     main_file = files['file']
-    
     meta_data = fields['meta']
-    if isinstance(meta_data, str):
-        try:
-            import json
-            meta_data = json.loads(meta_data)
-        except:
-            pass
+    meta_data = json.loads(meta_data)
+
+    if 'file' not in meta_data:
+        return {
+            "status": "ERROR",
+            "errors": ["missing 'file' field"],
+            "message": "file field is required in meta data"
+        }, 400
+    
+    if 'externalId' not in meta_data['file']:
+        return {
+            "status": "ERROR",
+            "errors": ["missing 'externalId' field"],
+            "message": "externalId field is required in file data"
+        }, 400
+    
     
     response = {
         "status": "SUCCESS",
@@ -48,7 +58,7 @@ def set_attachments(data):
         "message": "Файлы успешно загружены в хранилище",
         "fileResult": {
             "akdId": str(uuid.uuid4()),
-            "externalId": str(random.randint(1, 10000)),
+            "externalId": meta_data['file']['externalId'],
             "sha512": hashlib.sha256(main_file['content']).hexdigest(),
             "externalCreatedDate": datetime.now().isoformat()
         },
