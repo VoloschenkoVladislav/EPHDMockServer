@@ -19,6 +19,7 @@ from get_clients import get_clients
 from get_documents import get_documents
 from create_archive import create_archive
 from get_archive import get_archive
+from get_file import get_file
 
 
 class MultipartParser:
@@ -180,7 +181,8 @@ class MockHandler(BaseHTTPRequestHandler):
             r'^/psbfs/api/v1\.1/files/([^/]+)/binaries$': lambda self, match, _: get_attachments(match.group(1)),
             r'^/api/integration/products/([^/]+)$': lambda self, match, _: get_products(match.group(1)),
             r'^/api/v1/ul/clients$': lambda self, match, params: get_clients(params),
-            r'^/psbfs/api/v1.1/jobs/package/([^/]+)/binaries$': lambda self, match, params: get_archive(params)
+            r'^/psbfs/api/v1.1/jobs/package/([^/]+)/binaries$': lambda self, match, params: get_archive(match.group(1)),
+            r'^/api/v1/files/([^/]+)/info$': lambda self, match, params: get_file(match.group(1))
         },
         'POST': {
             '/psbfs/api/v1.1/files/attachments': lambda self, data: set_attachments(data),
@@ -436,6 +438,7 @@ def run_server(port=8000, host='0.0.0.0'):
     print("   GET  /api/integration/products/{clientId}")
     print("   GET  /api/v1/ul/clients")
     print("   GET  /psbfs/api/v1.1/jobs/package/{jobId}/binaries")
+    print("   GET  /api/v1/files/{fileId}/info")
     print("   POST /psbfs/api/v1.1/files/attachments")
     print("   POST /psbfs/api/v2/dossier")
     print("   POST /api/integration/documents/search")
