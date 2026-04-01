@@ -23,6 +23,7 @@ def get_documents(data):
         }, 400
 
     document_count = random.randint(0, 15)
+    attachment_count = random.randint(1, 8)
 
     response = {
         "success": True,
@@ -42,7 +43,7 @@ def get_documents(data):
             "status": "ACTIVE",
             "comment": None,
             "productIds": [str(uuid.uuid4())],
-            "attachmentIds": [str(uuid.uuid4())],
+            "attachmentIds": get_attachment_list(attachment_count),
             "createdDate": generate_random_datetime(2008, 2025),
             "lastModifiedDate": generate_random_datetime(2008, 2025)
         })
@@ -56,3 +57,9 @@ def generate_random_datetime(start_year, end_year):
     random_days = random.randint(0, days_between)
     random_date = start_date + timedelta(days=random_days)
     return random_date.strftime("%Y-%m-%dT%H:%M:%S")
+
+def get_attachment_list(attachment_count):
+    attachments = []
+    for _ in range(attachment_count):
+        attachments.append(str(uuid.uuid4()))
+    return attachments
