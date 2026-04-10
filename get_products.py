@@ -35,7 +35,7 @@ def get_products(clientId):
             "id": str(uuid.uuid4()),
             "name": random.choice(names),
             "type": random.choice(types),
-            "contractNumber": str(random.randint(100000000000, 999999999999)),
+            "contractNumber": '1111-1111-1111-1111',
             "contractDate": generate_random_date(),
             "accountNumber": str(random.randint(100000000000, 999999999999)),
             "status": "ACTIVE",
