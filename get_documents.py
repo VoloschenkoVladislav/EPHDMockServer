@@ -22,7 +22,7 @@ def get_documents(data):
             "message": "types field is required"
         }, 400
 
-    document_count = random.randint(0, 15)
+    document_count = random.randint(1, 15)
     attachment_count = random.randint(1, 8)
 
     response = {
