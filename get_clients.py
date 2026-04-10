@@ -6,14 +6,15 @@ def get_clients(params):
     full_name = params.get('fullName', [None])[0]
     passport_series = params.get('passportSeries', [None])[0]
     passport_number = params.get('passportNumber', [None])[0]
+    id = params.get('id', [None])[0]
     limit = int(params.get('limit', [10])[0])
     offset = int(params.get('offset', [0])[0])
     sort = params.get('sort', ['fullName'])[0]
     direct = params.get('direct', ['asc'])[0]
 
-    client_count = random.randint(0, 15)
+    client_count = random.randint(0, 1)
 
-    all_clients = generate_clients(full_name, passport_series, passport_number, count=client_count)
+    all_clients = generate_clients(id, full_name, passport_series, passport_number, count=client_count)
     sorted_clients = sort_clients(all_clients, sort, direct)
     paginated_clients = sorted_clients[offset:offset + limit]
 
@@ -27,12 +28,12 @@ def get_clients(params):
     
     return response
 
-def generate_clients(full_name, passport_series, passport_number, count=5):
+def generate_clients(id, full_name, passport_series, passport_number, count=5):
     clients = []
     
     for i in range(count):
         clients.append({
-            "id": str(uuid.uuid4()),
+            "id": id,
             "fullName": full_name if full_name else generate_random_name(),
             "passportSeries": passport_series if passport_series else str(random.randint(1000, 9999)),
             "passportNumber": passport_number if passport_number else str(random.randint(100000, 999999)),
