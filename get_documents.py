@@ -38,7 +38,7 @@ def get_documents(data):
             "id": str(uuid.uuid4()),
             "type": random.choice(data['types']) if data['types'] else str(random.randint(1000, 9999)),
             "name": "Паспорт",
-            "number": random.choice(['0000-0000-0000-0000, 1111-1111-1111-1111', '2222-2222-2222-2222', '3333-3333-3333-3333']),
+            "number": '1111-1111-1111-1111',
             "date": None,
             "status": "ACTIVE",
             "comment": None,
