@@ -12,7 +12,7 @@ def get_clients(params):
     sort = params.get('sort', ['fullName'])[0]
     direct = params.get('direct', ['asc'])[0]
 
-    client_count = random.randint(0, 1)
+    client_count = 1
 
     all_clients = generate_clients(id, full_name, passport_series, passport_number, count=client_count)
     sorted_clients = sort_clients(all_clients, sort, direct)
