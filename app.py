@@ -2,13 +2,8 @@
 import json
 import re
 import socket
-import uuid
-import os
-import tempfile
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
-from io import BytesIO
-from datetime import datetime
 
 # Импорт ваших обработчиков
 from set_attachments import set_attachments
