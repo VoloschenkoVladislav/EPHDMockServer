@@ -1,7 +1,9 @@
 import uuid
 import random
 from datetime import datetime, timedelta
+from server_errrors import error_chance
 
+@error_chance
 def get_products(clientId):
     numberOfProducts = random.randint(0, 10)
 

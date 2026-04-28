@@ -1,7 +1,9 @@
 import uuid
 import random
 from datetime import datetime, timedelta
+from server_errrors import error_chance
 
+@error_chance
 def get_documents(data):
     if 'clientId' not in data:
         return {

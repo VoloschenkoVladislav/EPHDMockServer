@@ -3,7 +3,9 @@ import hashlib
 import random
 from datetime import datetime
 import json
+from server_errrors import error_chance
 
+@error_chance
 def set_attachments(data):
     fields = {}
     files = {}

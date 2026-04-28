@@ -2,7 +2,9 @@ import uuid
 import random
 import string
 from datetime import datetime, timedelta
+from server_errrors import error_chance
 
+@error_chance
 def get_file(id):
     attachments_count = random.randint(0, 15)
 

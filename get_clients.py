@@ -1,7 +1,8 @@
-import uuid
+from server_errrors import error_chance
 import random
 from datetime import datetime, timedelta
 
+@error_chance
 def get_clients(params):
     full_name = params.get('fullName', [None])[0]
     passport_series = params.get('passportSeries', [None])[0]

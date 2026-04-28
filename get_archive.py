@@ -1,3 +1,6 @@
+from server_errrors import error_chance
+
+@error_chance
 def get_archive(id):
     try:
         with open('./test_archive.zip', 'rb') as f:

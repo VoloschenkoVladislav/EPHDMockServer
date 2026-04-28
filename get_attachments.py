@@ -1,3 +1,6 @@
+from server_errrors import error_chance
+
+@error_chance
 def get_attachments(id):
     try:
         with open('./test_file.pdf', 'rb') as f:

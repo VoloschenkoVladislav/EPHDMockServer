@@ -300,7 +300,7 @@ class MockHandler(BaseHTTPRequestHandler):
         else:
             self.wfile.write(str(data).encode('utf-8'))
     
-    def _send_binary_response(self, data, content_type, filename=None, status=200):
+    def _send_binary_response(self, data, content_type='application/json', filename=None, status=200):
         headers = {}
         if filename:
             headers['Content-Disposition'] = f'attachment; filename="{filename}"'
@@ -354,11 +354,14 @@ class MockHandler(BaseHTTPRequestHandler):
                         # Обработка различных типов ответов
                         if isinstance(result, tuple) and len(result) >= 2:
                             if len(result) == 2:
-                                data, content_type = result
-                                self._send_binary_response(data, content_type)
+                                data, code = result
+                                if isinstance(data, bytes):
+                                    self._send_binary_response(data, status=code)
+                                else:
+                                    self._send_response(data, status=code)
                             else:
-                                data, content_type, filename = result
-                                self._send_binary_response(data, content_type, filename)
+                                data, code, filename = result
+                                self._send_binary_response(data, filename, status=code)
                         else:
                             self._send_response(result)
                         return

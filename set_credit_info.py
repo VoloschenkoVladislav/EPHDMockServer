@@ -1,5 +1,7 @@
 import uuid
+from server_errrors import error_chance
 
+@error_chance
 def set_credit_info(data):
     response = {
         "success": True,
