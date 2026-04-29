@@ -334,7 +334,11 @@ class MockHandler(BaseHTTPRequestHandler):
                     else:
                         result = handler(self)
                 
-                self._send_response(result)
+                if isinstance(result, tuple) and len(result) == 2:
+                    data, code = result
+                    self._send_response(data, status=code)
+                else:
+                    self._send_response(result)
                 return
             except Exception as e:
                 import traceback
