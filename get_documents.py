@@ -11,12 +11,6 @@ def get_documents(data):
             "errors": ["missing 'clientId' field"],
             "message": "clientId field is required"
         }, 400
-    if 'productId' not in data:
-        return {
-            "status": "ERROR",
-            "errors": ["missing 'clientId' field"],
-            "message": "clientId field is required"
-        }, 400
     if 'types' not in data:
         return {
             "status": "ERROR",
