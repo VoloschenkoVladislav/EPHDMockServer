@@ -18,8 +18,12 @@ def get_documents(data):
             "message": "types field is required"
         }, 400
 
-    document_count = random.randint(1, 15)
-    attachment_count = random.randint(1, 8)
+    if data['productId']:
+        document_count = random.randint(1, 15)
+        attachment_count = random.randint(1, 8)
+    else:
+        document_count = 1
+        attachment_count = 1
 
     response = {
         "success": True,
