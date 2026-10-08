@@ -1,11 +1,9 @@
-#!/usr/bin/env python3
 import json
 import re
 import socket
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 
-# Импорт ваших обработчиков
 from set_attachments import set_attachments
 from set_credit_info import set_credit_info
 from get_attachments import get_attachments
@@ -15,6 +13,7 @@ from get_documents import get_documents
 from create_archive import create_archive
 from get_archive import get_archive
 from get_file import get_file
+from get_authorization_token import get_authorization_token
 
 
 class MultipartParser:
@@ -176,14 +175,15 @@ class MockHandler(BaseHTTPRequestHandler):
             r'^/psbfs/api/v1\.1/files/([^/]+)/binaries$': lambda self, match, _: get_attachments(match.group(1)),
             r'^/api/integration/products/([^/]+)$': lambda self, match, _: get_products(match.group(1)),
             r'^/api/v1/ul/clients$': lambda self, match, params: get_clients(params),
-            r'^/psbfs/api/v1.1/jobs/package/([^/]+)/binaries$': lambda self, match, params: get_archive(match.group(1)),
+            r'^/psbfs/api/v1\.1/jobs/package/([^/]+)/binaries$': lambda self, match, params: get_archive(match.group(1)),
             r'^/api/v1/files/([^/]+)/info$': lambda self, match, params: get_file(match.group(1))
         },
         'POST': {
             '/psbfs/api/v1.1/files/attachments': lambda self, data: set_attachments(data),
-            '/psbfs/api/v2/dossier': lambda self, data: set_credit_info(data),
+            '/open-api/api/v2/dossier': lambda self, data: set_credit_info(data),
             '/api/integration/documents/search': lambda self, data: get_documents(data),
-            '/psbfs/api/v1.1/jobs/package': lambda self, data: create_archive(data)
+            '/psbfs/api/v1.1/jobs/package': lambda self, data: create_archive(data),
+            '/auth/realms/sed-group/protocol/openid-connect/token': lambda self, data: get_authorization_token()
         },
         'PUT': {},
         'DELETE': {}
