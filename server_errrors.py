@@ -1,6 +1,6 @@
 import random
 
-ERROR_CHANCE = 10
+ERROR_CHANCE = 0
 
 def error_chance(func):
     def wrapper(*args, **kwargs):
