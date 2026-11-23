@@ -174,7 +174,7 @@ class MockHandler(BaseHTTPRequestHandler):
         'GET': {
             r'^/psbfs/api/v1\.1/files/([^/]+)/binaries$': lambda self, match, _: get_attachments(match.group(1)),
             r'^/api/integration/products/([^/]+)$': lambda self, match, _: get_products(match.group(1)),
-            r'^/api/v1/ul/clients$': lambda self, match, params: get_clients(params),
+            r'^/individuals-dossier/api/v1/fl/clients$': lambda self, match, params: get_clients(params),
             r'^/psbfs/api/v1\.1/jobs/package/([^/]+)/binaries$': lambda self, match, params: get_archive(match.group(1)),
             r'^/api/v1/files/([^/]+)/info$': lambda self, match, params: get_file(match.group(1))
         },
@@ -438,7 +438,7 @@ def run_server(port=8000, host='0.0.0.0'):
     print("📋 Available endpoints:")
     print("   GET  /psbfs/api/v1.1/files/{id}/binaries")
     print("   GET  /api/integration/products/{clientId}")
-    print("   GET  /api/v1/ul/clients")
+    print("   GET  /individuals-dossier/api/v1/fl/clients")
     print("   GET  /psbfs/api/v1.1/jobs/package/{jobId}/binaries")
     print("   GET  /api/v1/files/{fileId}/info")
     print("   POST /psbfs/api/v1.1/files/attachments")
