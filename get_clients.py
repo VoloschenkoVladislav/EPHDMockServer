@@ -7,7 +7,7 @@ def get_clients(params):
     full_name = params.get('fullName', [None])[0]
     passport_series = params.get('passportSeries', [None])[0]
     passport_number = params.get('passportNumber', [None])[0]
-    id = params.get('id', [None])[0]
+    id = params.get('realId', [None])[0]
     limit = int(params.get('limit', [10])[0])
     offset = int(params.get('offset', [0])[0])
     sort = params.get('sort', ['fullName'])[0]
