@@ -173,7 +173,7 @@ class MockHandler(BaseHTTPRequestHandler):
     endpoints = {
         'GET': {
             r'^/psbfs/api/v1\.1/files/([^/]+)/binaries$': lambda self, match, _: get_attachments(match.group(1)),
-            r'^/individual-dossier/api/integration/products/([^/]+)$': lambda self, match, _: get_products(match.group(1)),
+            r'^/individuals-dossier/api/integration/products/([^/]+)$': lambda self, match, _: get_products(match.group(1)),
             r'^/individuals-dossier/api/v1/fl/clients$': lambda self, match, params: get_clients(params),
             r'^/psbfs/api/v1\.1/jobs/package/([^/]+)/binaries$': lambda self, match, params: get_archive(match.group(1)),
             r'^/psbfs/api/v1.1/files/([^/]+)/info$': lambda self, match, params: get_file(match.group(1))
@@ -181,7 +181,7 @@ class MockHandler(BaseHTTPRequestHandler):
         'POST': {
             '/psbfs/api/v1.1/files/attachments': lambda self, data: set_attachments(data),
             '/open-api/api/v2/dossier': lambda self, data: set_credit_info(data),
-            '/individual-dossier/api/integration/documents/search': lambda self, data: get_documents(data),
+            '/individuals-dossier/api/integration/documents/search': lambda self, data: get_documents(data),
             '/psbfs/api/v1.1/jobs/package': lambda self, data: create_archive(data),
             '/auth/realms/sed-group/protocol/openid-connect/token': lambda self, data: get_authorization_token()
         },
@@ -437,13 +437,13 @@ def run_server(port=8000, host='0.0.0.0'):
     print()
     print("📋 Available endpoints:")
     print("   GET  /psbfs/api/v1.1/files/{id}/binaries")
-    print("   GET  /individual-dossier/api/integration/products/{clientId}")
+    print("   GET  /individuals-dossier/api/integration/products/{clientId}")
     print("   GET  /individuals-dossier/api/v1/fl/clients")
     print("   GET  /psbfs/api/v1.1/jobs/package/{jobId}/binaries")
     print("   GET  /api/v1/files/{fileId}/info")
     print("   POST /psbfs/api/v1.1/files/attachments")
     print("   POST /open-api/api/v2/dossier")
-    print("   POST /individual-dossier/api/integration/documents/search")
+    print("   POST /individuals-dossier/api/integration/documents/search")
     print("   POST /psbfs/api/v1.1/jobs/package")
     print("   POST /auth/realms/sed-group/protocol/openid-connect/token")
     print()
